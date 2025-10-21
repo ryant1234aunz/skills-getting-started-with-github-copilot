@@ -41,7 +41,53 @@ document.addEventListener("DOMContentLoaded", () => {
           details.participants.forEach((p) => {
             const li = document.createElement("li");
             li.className = "participant-item";
-            li.textContent = p;
+
+            const nameSpan = document.createElement("span");
+            nameSpan.textContent = p;
+
+            const deleteBtn = document.createElement("button");
+            deleteBtn.className = "participant-delete";
+            deleteBtn.setAttribute("aria-label", `Unregister ${p} from ${name}`);
+            // Using a simple ✖ character as the delete icon
+            deleteBtn.innerHTML = "&times;";
+
+            // Attach click handler to unregister participant
+            deleteBtn.addEventListener("click", async (e) => {
+              e.stopPropagation();
+              if (!confirm(`Unregister ${p} from ${name}?`)) return;
+
+              try {
+                const resp = await fetch(
+                  `/activities/${encodeURIComponent(name)}/participants?email=${encodeURIComponent(p)}`,
+                  { method: "DELETE" }
+                );
+
+                const resJson = await resp.json();
+                if (resp.ok) {
+                  messageDiv.textContent = resJson.message;
+                  messageDiv.className = "success";
+                  messageDiv.classList.remove("hidden");
+                  // Refresh list
+                  await fetchActivities();
+                } else {
+                  messageDiv.textContent = resJson.detail || "Failed to unregister participant";
+                  messageDiv.className = "error";
+                  messageDiv.classList.remove("hidden");
+                }
+
+                setTimeout(() => {
+                  messageDiv.classList.add("hidden");
+                }, 4000);
+              } catch (err) {
+                console.error("Error unregistering participant:", err);
+                messageDiv.textContent = "Failed to unregister. Please try again.";
+                messageDiv.className = "error";
+                messageDiv.classList.remove("hidden");
+              }
+            });
+
+            li.appendChild(nameSpan);
+            li.appendChild(deleteBtn);
             participantsList.appendChild(li);
           });
         }
